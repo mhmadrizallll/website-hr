@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 public class MdbReaderService {
 
   /**
-   * Helper untuk ambil kolom dari row tanpa peduli case
+   * Ambil value dari row tanpa peduli case
    */
   private Object getIgnoreCase(Map<String, Object> row, String key) {
     for (String k : row.keySet()) {
@@ -26,7 +26,7 @@ public class MdbReaderService {
   }
 
   /**
-   * Helper format checkTime ke "dd-MM-yyyy HH.mm"
+   * Format checkTime dari MDB ke "dd-MM-yyyy HH.mm"
    */
   private String formatCheckTime(Object checkTimeObj) {
     if (checkTimeObj == null) return null;
@@ -66,11 +66,11 @@ public class MdbReaderService {
 
       if (deptTable != null) {
         for (Map<String, Object> row : deptTable) {
-          Number deptIdNum = (Number) getIgnoreCase(row, "deptid");
+          Number deptIdNum = (Number) getIgnoreCase(row, "DEPTID");
           if (deptIdNum == null) continue;
 
           Integer deptId = deptIdNum.intValue();
-          String deptName = String.valueOf(getIgnoreCase(row, "deptname"));
+          String deptName = String.valueOf(getIgnoreCase(row, "DEPTNAME"));
 
           deptMap.put(deptId, deptName);
         }
@@ -84,7 +84,7 @@ public class MdbReaderService {
 
       if (userTable != null) {
         for (Map<String, Object> row : userTable) {
-          Number userIdNum = (Number) getIgnoreCase(row, "userid");
+          Number userIdNum = (Number) getIgnoreCase(row, "USERID");
           if (userIdNum == null) continue;
 
           Integer userId = userIdNum.intValue();
@@ -99,26 +99,29 @@ public class MdbReaderService {
 
       if (checkTable != null) {
         for (Map<String, Object> row : checkTable) {
-          Number userIdNum = (Number) getIgnoreCase(row, "userid");
+          Number userIdNum = (Number) getIgnoreCase(row, "USERID");
           if (userIdNum == null) continue;
 
           Integer userId = userIdNum.intValue();
           Map<String, Object> user = userMap.get(userId);
           if (user == null) continue;
 
-          // Paksa pakai deptid = 2 (FIG5)
-          Integer deptId = 2;
-          String deptName = deptMap.get(deptId);
+          // Ambil deptId dari USERINFO DEFAULTDEPTID
+          Number deptIdNum = (Number) getIgnoreCase(user, "DEFAULTDEPTID");
+          Integer deptId = deptIdNum != null ? deptIdNum.intValue() : null;
+          String deptName = deptId != null ? deptMap.get(deptId) : null;
 
           Map<String, Object> data = new HashMap<>();
           data.put("userId", userId);
-          data.put("name", getIgnoreCase(user, "name"));
+          data.put("name", getIgnoreCase(user, "NAME"));
+          // Ambil badgeNumber dari kolom MDB "Budgenumber"
+          data.put("badgeNumber", getIgnoreCase(user, "Badgenumber"));
           data.put("department", deptName);
           data.put(
             "checkTime",
-            formatCheckTime(getIgnoreCase(row, "checktime"))
+            formatCheckTime(getIgnoreCase(row, "CHECKTIME"))
           );
-          data.put("type", getIgnoreCase(row, "checktype"));
+          data.put("type", getIgnoreCase(row, "CHECKTYPE"));
 
           result.add(data);
         }

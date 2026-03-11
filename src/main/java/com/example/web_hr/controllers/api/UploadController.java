@@ -1,32 +1,45 @@
 package com.example.web_hr.controllers.api;
 
-import com.example.web_hr.service.MdbReaderService;
+import com.example.web_hr.service.*;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/upload")
+@RequestMapping("/api")
 public class UploadController {
 
-  @Autowired
-  private MdbReaderService mdbReaderService;
+  private final MdbReaderService mdbReader;
+  private final AttendanceDbService dbService;
 
-  @PostMapping("/mdb")
-  public List<Map<String, Object>> uploadMdb(
-    @RequestParam("file") MultipartFile file
+  public UploadController(
+    MdbReaderService mdbReader,
+    AttendanceDbService dbService
   ) {
-    try {
-      File tempFile = File.createTempFile("absensi", ".mdb");
-      file.transferTo(tempFile);
+    this.mdbReader = mdbReader;
+    this.dbService = dbService;
+  }
 
-      return mdbReaderService.readAttendance(tempFile.getAbsolutePath());
-    } catch (Exception e) {
-      e.printStackTrace();
-      return null;
-    }
+  @PostMapping("/upload")
+  public ResponseEntity<?> uploadMdb(@RequestParam("file") MultipartFile file)
+    throws Exception {
+    // 1. Simpan file sementara
+    File temp = File.createTempFile("mdb-", ".mdb");
+    file.transferTo(temp);
+
+    // 2. Baca data MDB
+    List<Map<String, Object>> data = mdbReader.readAttendance(
+      temp.getAbsolutePath()
+    );
+
+    // 3. Simpan ke database
+    dbService.saveAttendance(data, file.getOriginalFilename());
+
+    return ResponseEntity.ok(
+      Map.of("status", "success", "totalRecords", data.size())
+    );
   }
 }
