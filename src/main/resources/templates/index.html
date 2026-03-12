@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload MDB</title>
+</head>
+<body>
+
+<h2>Upload Attendance MDB</h2>
+
+<form id="uploadForm">
+
+<input
+type="file"
+name="file"
+class="form-control"
+accept=".mdb"
+required>
+
+<br>
+
+<button class="btn btn-primary">
+Upload
+</button>
+
+</form>
+
+<script>
+
+document.getElementById("uploadForm")
+.addEventListener("submit", async function(e){
+
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData
+    });
+
+    const result = await response.json();
+
+    alert("Upload sukses! Total data: " + result.totalRecords);
+
+});
+
+</script>
+
+</body>
+</html>

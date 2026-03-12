@@ -14,7 +14,45 @@ public interface AttendanceLogRepository
 {
   boolean existsByUserAndCheckTime(User user, LocalDateTime checkTime);
 
-  // FIXED: akses user.userId karena primary key bukan 'id'
   @Query("SELECT a FROM AttendanceLog a WHERE a.user.userId IN :userIds")
   List<AttendanceLog> findByUserIds(@Param("userIds") Set<Long> userIds);
+
+  // export berdasarkan tanggal
+  @Query(
+    """
+        SELECT a FROM AttendanceLog a
+        JOIN FETCH a.user
+        WHERE a.checkTime BETWEEN :start AND :end
+        ORDER BY a.checkTime
+    """
+  )
+  List<AttendanceLog> findByCheckTimeBetween(
+    @Param("start") LocalDateTime start,
+    @Param("end") LocalDateTime end
+  );
+
+  // ambil log berdasarkan user
+  @Query(
+    """
+    SELECT a FROM AttendanceLog a
+    JOIN FETCH a.user
+    WHERE a.user.userId = :userId
+    ORDER BY a.checkTime DESC
+    """
+  )
+  List<AttendanceLog> findByUserId(@Param("userId") Long userId);
+
+  @Query(
+    """
+    SELECT a FROM AttendanceLog a
+    JOIN FETCH a.user u
+    WHERE a.checkTime = (
+        SELECT MAX(b.checkTime)
+        FROM AttendanceLog b
+        WHERE b.user = a.user
+    )
+    ORDER BY a.checkTime DESC
+    """
+  )
+  List<AttendanceLog> findLastAttendance();
 }
