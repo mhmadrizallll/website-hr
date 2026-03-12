@@ -10,8 +10,8 @@ import com.example.web_hr.repository.UploadHistoryRepository;
 import com.example.web_hr.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,33 +40,29 @@ public class AttendanceDbService {
     List<Map<String, Object>> data,
     String fileName
   ) {
+    if (data.isEmpty()) {
+      throw new IllegalArgumentException("Data MDB kosong");
+    }
+
     // =====================
-    // 0. Pastikan Department default ada (id = 1)
+    // 0. Pastikan Department default ada
     // =====================
     Department department = departmentRepository
       .findById(1L)
       .orElseGet(() -> {
         Department d = new Department();
-        d.setDeptId(1L);
-        d.setDeptName("DefaultDept"); // sementara
+        d.setDeptName("DefaultDept");
         return departmentRepository.save(d);
       });
 
-    // =====================
-    // 0b. Update nama departemen jika ada nama baru dari MDB
-    // =====================
-    if (!data.isEmpty()) {
-      Map<String, Object> firstRow = data.get(0);
-      Object deptNameObj = firstRow.get("department");
-      if (deptNameObj != null) {
-        String deptName = deptNameObj.toString();
-        department.setDeptName(deptName);
-        departmentRepository.save(department);
-      }
+    // Update nama department jika ada dari data MDB
+    Object deptNameObj = data.get(0).get("department");
+    if (deptNameObj != null) {
+      department.setDeptName(deptNameObj.toString());
     }
 
     // =====================
-    // 1. Buat UploadHistory
+    // 1. Simpan UploadHistory
     // =====================
     UploadHistory uploadHistory = new UploadHistory();
     uploadHistory.setFileName(fileName);
@@ -75,51 +71,84 @@ public class AttendanceDbService {
     uploadHistoryRepository.save(uploadHistory);
 
     // =====================
-    // 2. Simpan Users dulu (jika belum ada)
+    // 2. Simpan Users (baru atau update department)
     // =====================
+    Set<Long> userIds = new HashSet<>();
     for (Map<String, Object> row : data) {
       Long userId = ((Number) row.get("userId")).longValue();
+      userIds.add(userId);
+
       String badgeNumber = (String) row.get("badgeNumber");
       String name = (String) row.get("name");
 
-      userRepository
+      User user = userRepository
         .findById(userId)
         .orElseGet(() -> {
-          User user = new User();
-          user.setUserId(userId);
-          user.setBadgeNumber(badgeNumber);
-          user.setName(name);
-          user.setIsActive(true);
-          user.setDepartment(department); // pakai dept id 1
-          return userRepository.save(user);
+          User u = new User();
+          u.setUserId(userId);
+          u.setBadgeNumber(badgeNumber);
+          u.setName(name);
+          u.setIsActive(true);
+          return u;
         });
+
+      user.setDepartment(department);
+      userRepository.save(user);
     }
 
     // =====================
-    // 3. Simpan AttendanceLogs
+    // 3. Ambil semua AttendanceLog existing untuk user di data
+    // =====================
+    List<AttendanceLog> existingLogs = attendanceLogRepository.findByUserIds(
+      userIds
+    );
+
+    // Buat set cepat cek duplikat: "userId_checkTime"
+    Set<String> existingKeys = existingLogs
+      .stream()
+      .map(
+        log -> log.getUser().getUserId() + "_" + log.getCheckTime().toString()
+      )
+      .collect(Collectors.toSet());
+
+    // =====================
+    // 4. Prepare list log baru
     // =====================
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
       "dd-MM-yyyy HH.mm"
     );
+    List<AttendanceLog> newLogs = new ArrayList<>();
 
     for (Map<String, Object> row : data) {
       Long userId = ((Number) row.get("userId")).longValue();
       User user = userRepository.findById(userId).orElse(null);
       if (user == null) continue;
 
+      Object checkTimeObj = row.get("checkTime");
+      if (checkTimeObj == null) continue;
+
+      LocalDateTime checkTime = LocalDateTime.parse(
+        checkTimeObj.toString(),
+        formatter
+      );
+      String key = userId + "_" + checkTime.toString();
+
+      if (existingKeys.contains(key)) continue; // skip jika sudah ada
+
       AttendanceLog log = new AttendanceLog();
       log.setUser(user);
       log.setUploadHistory(uploadHistory);
-
-      Object checkTimeObj = row.get("checkTime");
-      if (checkTimeObj != null) {
-        log.setCheckTime(
-          LocalDateTime.parse(checkTimeObj.toString(), formatter)
-        );
-      }
-
+      log.setCheckTime(checkTime);
       log.setCheckType((String) row.get("type"));
-      attendanceLogRepository.save(log);
+
+      newLogs.add(log);
+    }
+
+    // =====================
+    // 5. Batch insert log baru
+    // =====================
+    if (!newLogs.isEmpty()) {
+      attendanceLogRepository.saveAll(newLogs);
     }
 
     return uploadHistory;
