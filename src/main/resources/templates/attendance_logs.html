@@ -1,56 +1,225 @@
 <!DOCTYPE html>
-<html>
+<html xmlns:th="http://www.thymeleaf.org">
+
 <head>
 
-<title>Attendance Logs</title>
+    <title>Attendance Logs</title>
 
-<link
-href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+    <style>
+        body {
+            background: #f4f6f9;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 56px;
+            left: 0;
+            width: 230px;
+            height: calc(100vh - 56px);
+            background: #1f2937;
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+
+        .sidebar a:hover {
+            background: #374151;
+        }
+
+        .main-content {
+            margin-left: 230px;
+            margin-top: 56px;
+            padding: 30px;
+        }
+
+        .navbar-custom {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+    </style>
 
 </head>
 
 <body>
 
-<div class="container mt-5">
+    <!-- NAVBAR -->
 
-<h3>Attendance Logs</h3>
+    <nav class="navbar navbar-expand-lg navbar-custom px-4 fixed-top">
 
-<table class="table table-bordered">
+        <span class="navbar-brand fw-bold">
+            <i class="bi bi-clock-history"></i>
+            Attendance System
+        </span>
 
-<thead>
+    </nav>
 
-<tr>
-<th>NIK</th>
-<th>Name</th>
-<th>Date</th>
-<th>Check Time</th>
-<th>Type</th>
-</tr>
 
-</thead>
+    <!-- SIDEBAR -->
 
-<tbody>
+    <div class="sidebar">
 
-<tr th:each="log : ${logs}">
+        <h5 class="mb-4">Menu</h5>
 
-<td th:text="${log.user.badgeNumber}"></td>
+        <a href="/">
+            <i class="bi bi-upload"></i>
+            Upload Attendance
+        </a>
 
-<td th:text="${log.user.name}"></td>
+        <a href="/employees">
+            <i class="bi bi-people"></i>
+            Employees
+        </a>
 
-<td th:text="${#temporals.format(log.checkTime, 'yyyy-MM-dd')}"></td>
+    </div>
 
-<td th:text="${#temporals.format(log.checkTime, 'HH:mm')}"></td>
 
-<td th:text="${log.checkType}"></td>
+    <!-- MAIN CONTENT -->
 
-</tr>
+    <div class="main-content">
 
-</tbody>
+        <div class="card p-4">
 
-</table>
+            <div class="d-flex justify-content-between align-items-center mb-4">
 
-</div>
+                <h4>
+                    <i class="bi bi-list-check"></i>
+                    Attendance Logs
+                </h4>
+
+                <a th:href="@{/employees}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i>
+                    Back
+                </a>
+
+            </div>
+
+            <form method="get" th:action="@{/employees/{id}/logs(id=${userId})}" class="row g-2 mb-3">
+
+                <div class="col-md-3">
+                    <label>Start Date</label>
+                    <input type="date" name="startDate" class="form-control" th:value="${startDate}">
+                </div>
+
+                <div class="col-md-3">
+                    <label>End Date</label>
+                    <input type="date" name="endDate" class="form-control" th:value="${endDate}">
+                </div>
+
+                <div class="col-md-2 align-self-end">
+
+                    <button class="btn btn-primary">
+                        <i class="bi bi-search"></i>
+                        Filter
+                    </button>
+
+                </div>
+
+            </form>
+
+            <table class="table table-bordered table-hover">
+
+                <thead class="table-dark text-center">
+
+                    <tr>
+
+                        <th>NIK</th>
+                        <th>Name</th>
+                        <th>Date</th>
+                        <th>Check Time</th>
+                        <th>Status</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    <tr th:each="log : ${logs}" class="text-center">
+
+                        <td th:text="${log.user.badgeNumber}"></td>
+
+                        <td th:text="${log.user.name}"></td>
+
+                        <td th:text="${#temporals.format(log.checkTime, 'yyyy-MM-dd')}"></td>
+
+                        <td th:text="${#temporals.format(log.checkTime, 'HH:mm')}"></td>
+
+                        <td>
+
+                            <span th:if="${log.checkTime.hour >= 6 and log.checkTime.hour < 16}"
+                                class="badge bg-success">
+                                Masuk
+                            </span>
+
+                            <span th:if="${log.checkTime.hour < 6 or log.checkTime.hour >= 16}" class="badge bg-danger">
+                                Keluar
+                            </span>
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+            <div class="d-flex justify-content-center mt-3">
+
+                <nav>
+
+                    <ul class="pagination">
+
+                        <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+
+                            <a class="page-link" th:href="@{/employees/{id}/logs(id=${userId},page=${currentPage-1})}">
+                                «
+                            </a>
+
+                        </li>
+
+
+                        <li class="page-item" th:each="i : ${#numbers.sequence(start,end)}"
+                            th:classappend="${i == currentPage} ? 'active'">
+
+                            <a class="page-link" th:href="@{/employees/{id}/logs(id=${userId},page=${i})}"
+                                th:text="${i+1}">
+                            </a>
+
+                        </li>
+
+
+                        <li class="page-item" th:classappend="${currentPage+1 >= totalPages} ? 'disabled'">
+
+                            <a class="page-link" th:href="@{/employees/{id}/logs(id=${userId},page=${currentPage+1})}">
+                                »
+                            </a>
+
+                        </li>
+
+                    </ul>
+
+                </nav>
+
+            </div>
+
+        </div>
+
+    </div>
 
 </body>
+
 </html>
