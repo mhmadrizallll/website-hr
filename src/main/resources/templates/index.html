@@ -1,32 +1,181 @@
 <!DOCTYPE html>
-<html>
+<html xmlns:th="http://www.thymeleaf.org">
 
 <head>
-    <title>Upload MDB</title>
 
-    <!-- Bootstrap CSS -->
+    <title>Upload Attendance MDB</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+    <style>
+        body {
+            background: #f4f6f9;
+        }
+
+        .sidebar {
+            height: 100vh;
+            background: #1f2937;
+            color: white;
+            padding: 20px;
+            position: fixed;
+            width: 230px;
+        }
+
+        .sidebar a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 5px;
+        }
+
+        .sidebar a:hover {
+            background: #374151;
+        }
+
+        .main-content {
+            margin-left: 240px;
+            padding: 30px;
+        }
+
+        .card {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+
+        .navbar-custom {
+            background: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn {
+            border: 1px solid #1f2937;
+            border-radius: 10px;
+            padding: 8px 16px;
+        }
+
+        .btn:hover {
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            background: #374151;
+            color: white;
+        }
+
+        .toggle-icon {
+            transition: 0.3s;
+        }
+
+        a[aria-expanded="true"] .toggle-icon {
+            transform: rotate(180deg);
+        }
+    </style>
 
 </head>
 
-<body class="p-5">
+<body>
 
-    <h2>Upload Attendance MDB</h2>
+    <!-- NAVBAR -->
 
-    <form id="uploadForm">
+    <nav class="navbar navbar-expand-lg navbar-custom px-4">
 
-        <input type="file" name="file" class="form-control w-50" accept=".mdb" required>
+        <span class="navbar-brand fw-bold">
 
-        <br>
+            <i class="bi bi-clock-history"></i>
+            Attendance System
 
-        <button type="submit" class="btn btn-primary" id="uploadBtn">
-            Upload
-        </button>
+        </span>
 
-    </form>
+    </nav>
+
+
+    <!-- SIDEBAR -->
+
+    <div class="sidebar">
+
+        <h5 class="mb-4">Menu</h5>
+
+        <a href="/">
+            <i class="bi bi-upload"></i>
+            Upload Attendance
+        </a>
+
+        <div>
+
+            <a data-bs-toggle="collapse" href="#employeeMenu" role="button" aria-expanded="false">
+
+                <i class="bi bi-people"></i>
+                Employees
+
+                <i class="bi bi-chevron-down float-end toggle-icon"></i>
+
+            </a>
+
+            <div class="collapse ps-3" id="employeeMenu">
+
+                <a href="/employees">
+                    <i class="bi bi-person"></i>
+                    All Users
+                </a>
+
+                <a th:each="dept : ${departments}" th:href="@{/employees/department/{id}(id=${dept.deptId})}">
+
+                    <i class="bi bi-building"></i>
+
+                    <span th:text="${dept.deptName}"></span>
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- MAIN CONTENT -->
+
+    <div class="main-content">
+
+        <div class="card p-4">
+
+            <h4 class="mb-4">
+
+                <i class="bi bi-database-upload"></i>
+                Upload Attendance MDB
+
+            </h4>
+
+
+            <form id="uploadForm">
+
+                <div class="mb-3">
+
+                    <label class="form-label">File MDB</label>
+
+                    <input type="file" name="file" class="form-control w-50" accept=".mdb" required>
+
+                </div>
+
+
+                <button type="submit" class="btn btn-primary" id="uploadBtn">
+
+                    <i class="bi bi-upload"></i>
+                    Upload File
+
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
 
 
     <!-- Loading Modal -->
+
     <div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
 
         <div class="modal-dialog modal-dialog-centered">
@@ -36,6 +185,7 @@
                 <div class="spinner-border text-primary mb-3"></div>
 
                 <h5>Mohon tunggu...</h5>
+
                 <p>Data attendance sedang diproses</p>
 
             </div>
@@ -45,8 +195,11 @@
     </div>
 
 
-    <!-- Bootstrap JS -->
+
+    <!-- JS -->
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 
